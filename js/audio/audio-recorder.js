@@ -170,9 +170,10 @@ export class AudioRecorder {
      */
     async saveChatToFirestore(base64Data) {
         try {
-            await addDoc(collection(db, "chathub"), {
+            await addDoc(collection(db, "chatdb"), {
                 timestamp: new Date(),
-                message: base64Data
+                message: base64Data,
+                user_sender: "/users/uid"
             });
             Logger.info('Chat data saved to Firestore successfully');
         } catch (error) {
