@@ -1,6 +1,24 @@
 import { Logger } from '../utils/logger.js';
 import { ApplicationError, ErrorCodes } from '../utils/error-boundary.js';
 import { CONFIG } from '../config/config.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+import { getFirestore, collection, addDoc } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js';
+
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDtNedkJo6ikNneZZdrheiWbE3Dn2B8kwQ",
+  authDomain: "ces-project-f8b4e.firebaseapp.com",
+  databaseURL: "https://ces-project-f8b4e-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ces-project-f8b4e",
+  storageBucket: "ces-project-f8b4e.firebasestorage.app",
+  messagingSenderId: "580767851656",
+  appId: "1:580767851656:web:2c852e7edb81a6decdeb3d",
+  measurementId: "G-K73DSMWBTP"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 /**
  * @class AudioRecorder
@@ -55,10 +73,11 @@ export class AudioRecorder {
             this.processor = new AudioWorkletNode(this.audioContext, 'audio-recorder-worklet');
             
             // Handle processed audio data
-            this.processor.port.onmessage = (event) => {
+            this.processor.port.onmessage = async (event) => {
                 if (event.data.event === 'chunk' && this.onAudioData && this.isRecording) {
                     const base64Data = this.arrayBufferToBase64(event.data.data.int16arrayBuffer);
                     this.onAudioData(base64Data);
+                    await this.saveChatToFirestore(base64Data); // Save chat to Firestore
                 }
             };
 
@@ -142,4 +161,22 @@ export class AudioRecorder {
             );
         }
     }
-} 
+
+    /**
+     * @method saveChatToFirestore
+     * @description Saves the chat data to Firestore.
+     * @param {string} base64Data - The Base64 encoded chat data.
+     * @private
+     */
+    async saveChatToFirestore(base64Data) {
+        try {
+            await addDoc(collection(db, "chathub"), {
+                timestamp: new Date(),
+                message: base64Data
+            });
+            Logger.info('Chat data saved to Firestore successfully');
+        } catch (error) {
+            Logger.error('Error saving chat data to Firestore', error);
+        }
+    }
+}
